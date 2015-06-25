@@ -279,27 +279,13 @@ namespace NevronPoC
 
             ZoomInFillStyle = new Nevron.GraphicsCore.NColorFillStyle ( System.Drawing.Color.FromArgb ( 125, System.Drawing.Color.Navy ) );
             ZoomInBorderStyle.Color = System.Drawing.Color.FromArgb ( 125, System.Drawing.Color.Navy );
-            //m_ChartControl.MouseDown += OnMouseDown;
             this.AlwaysZoomIn = true;
-        }
-
-        public override void DoBeginDrag ( object sender, Nevron.Chart.Windows.NMouseEventArgs e )
-        {
-            Console.WriteLine ( "Beginning drag.." );
-            base.DoBeginDrag ( sender, e );
-        }
-
-        public override void OnMouseDown ( object sender, Nevron.Chart.Windows.NMouseEventArgs e )
-        {
-            Console.WriteLine ( "Mouse down" );
-            base.OnMouseDown ( sender, e );
         }
 
         private bool m_notFirst = false;
 
         public override void OnEndDrag ( object sender, Nevron.Chart.Windows.NMouseEventArgs e )
         {
-            Console.WriteLine ( System.Windows.Application.Current.Dispatcher.CheckAccess ( ) );
             m_SelectedChart.Document.Lock ( );
             List<Data> entities = new List<Data> ( );
             Data entity;
@@ -321,85 +307,60 @@ namespace NevronPoC
                 rangeX.Normalize ( );
                 rangeY.Normalize ( );
 
-                // this is the dumbest thing i have had to write in along time...
-                // to "reset" the ones that should not have a style set. This is the crude version of the one inline below
-                if ( m_notFirst )
+                m_notFirst = true;
+
+                int selectCount = 0;
+                int notSelectedCount = 0;
+
+                StringBuilder sb = new StringBuilder ( );
+
+                sb.AppendLine ( "Range: " + rangeX.Begin + ", " + rangeY.Begin + " to " + rangeX.End + "," + rangeY.End );
+                for ( int j = 0 ; j < m_SelectedChart.Series.Count ; j++ )
                 {
-                    //for ( int x = 0 ; x < 3 ; x++ )
-                    //    Reset ( );
-                }
-                //else
-
-                {
-                    m_notFirst = true;
-
-                    int selectCount = 0;
-                    int notSelectedCount = 0;
-
-                    StringBuilder sb = new StringBuilder ( );
-
-                    sb.AppendLine ( "Range: " + rangeX.Begin + ", " + rangeY.Begin + " to " + rangeX.End + "," + rangeY.End );
-                    for ( int j = 0 ; j < m_SelectedChart.Series.Count ; j++ )
+                    var series = m_SelectedChart.Series [ j ] as Nevron.Chart.NPointSeries;
+                    if ( series != null )
                     {
-                        var series = m_SelectedChart.Series [ j ] as Nevron.Chart.NPointSeries;
-                        if ( series != null )
+                        Nevron.Chart.NPointSeries pointSeries = series;
+
+                        int count = pointSeries.GetDataPointCount ( );
+
+                        for ( int i = 0 ; i < count ; i++ )
                         {
-                            Nevron.Chart.NPointSeries pointSeries = series;
-
-                            // if this series is not displayed, then we don't want to select it
-                            // as the user can't see it
-                            if ( !pointSeries.Visible )
-                                continue;
-
-                            int count = pointSeries.GetDataPointCount ( );
-
-                            //if ( Util.CheckPointSeriesNames ( pointSeries ) )
+                            if ( rangeX.Contains ( (double)pointSeries.XValues [ i ] ) &&
+                                rangeY.Contains ( (double)pointSeries.Values [ i ] ) )
                             {
-                                for ( int i = 0 ; i < count ; i++ )
+                                sb.AppendLine ( pointSeries.XValues [ i ] + " x " + pointSeries.Values [ i ] );
+                                pointSeries.MarkerStyles [ i ] = m_highLightMarkerStyle;
+
+                                selectCount++;
+                            }
+                            else
+                            {
+                                pointSeries.FillStyles [ i ] = null; //Remove marker if not selected
+                                pointSeries.MarkerStyles [ i ] = null;
+
+                                //NOTE: NEVRON LOOK HERE
+                                // a small percent do not "take" for reasons unknown.  So we just try real hard and they go through.
+                                int cnt = 0;
+                                while ( pointSeries.MarkerStyles [ i ] != null )
                                 {
-                                    if ( rangeX.Contains ( (double)pointSeries.XValues [ i ] ) &&
-                                        rangeY.Contains ( (double)pointSeries.Values [ i ] ) )
-                                    {
-                                        sb.AppendLine ( pointSeries.XValues [ i ] + " x " + pointSeries.Values [ i ] );
-                                        pointSeries.MarkerStyles [ i ] = m_highLightMarkerStyle;
-
-                                        selectCount++;
-                                    }
-                                    else
-                                    {
-                                        pointSeries.FillStyles [ i ] = null; //Remove marker if not selected
-                                        pointSeries.MarkerStyles [ i ] = null;
-
-                                        //NOTE: NEVRON LOOK HERE
-                                        // a small percent do not "take" for reasons unknown.  So we just try real hard and they go through.
-                                        int cnt = 0;
-                                        while ( pointSeries.MarkerStyles [ i ] != null )
-                                        {
-                                            System.Threading.Thread.Sleep ( 1 );
-                                            Console.Write ( "." );
-                                            pointSeries.MarkerStyles [ i ] = null;
-                                            cnt++;
-                                            if ( cnt > 100 )
-                                                System.Diagnostics.Debugger.Break ( );
-                                        }
-                                        if ( cnt > 0 )
-                                            Console.WriteLine ( i + " : " + cnt );
-                                        //System.Diagnostics.Debugger.Break ( );
-                                        notSelectedCount++;
-                                    }
+                                    System.Threading.Thread.Sleep ( 1 );
+                                    Console.Write ( "." );
+                                    pointSeries.MarkerStyles [ i ] = null;
+                                    cnt++;
+                                    if ( cnt > 100 )
+                                        System.Diagnostics.Debugger.Break ( );
                                 }
+                                if ( cnt > 0 )
+                                    Console.WriteLine ( i + " : " + cnt );
+                                notSelectedCount++;
                             }
                         }
-                        else if ( m_SelectedChart.Series [ j ] != null )
-                        {
-                            Console.WriteLine ( "Odd series type: " + m_SelectedChart.Series [ j ].GetType ( ).Name );
-                            System.Diagnostics.Debugger.Break ( );
-                        }
                     }
-
-                    System.Diagnostics.Debug.WriteLine ( "OnEndDrag, " + selectCount + " points selected, " + notSelectedCount + " points NOT selected\r\n\ttotal: " + ( selectCount + notSelectedCount ) );
-                    System.IO.File.WriteAllText ( @"C:\temp\point_select\Selected_" + DateTime.Now.ToOADate ( ) + ".txt", sb.ToString ( ) );
                 }
+
+                System.Diagnostics.Debug.WriteLine ( "OnEndDrag, " + selectCount + " points selected, " + notSelectedCount + " points NOT selected\r\n\ttotal: " + ( selectCount + notSelectedCount ) );
+                //System.IO.File.WriteAllText ( @"C:\temp\point_select\Selected_" + DateTime.Now.ToOADate ( ) + ".txt", sb.ToString ( ) );
             }
 
             m_SelectedChart.Document.Unlock ( );
