@@ -344,7 +344,8 @@ namespace NevronPoC
                                 int cnt = 0;
                                 while ( pointSeries.MarkerStyles [ i ] != null )
                                 {
-                                    System.Threading.Thread.Sleep ( 1 );
+                                    // does not seem to help any
+                                    //System.Threading.Thread.Sleep ( 1 );
                                     Console.Write ( "." );
                                     pointSeries.MarkerStyles [ i ] = null;
                                     cnt++;
