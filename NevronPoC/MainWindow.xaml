@@ -1,0 +1,12 @@
+﻿<Window x:Class="NevronPoC.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:nevron="clr-namespace:Nevron.Chart.Wpf;assembly=Nevron.Chart.Wpf"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow"
+        Height="350"
+        Width="525">
+    <Border Background="#CCEEDD">
+        <nevron:NChartControl x:Name="chartContainer">
+        </nevron:NChartControl>
+    </Border>
+</Window>
