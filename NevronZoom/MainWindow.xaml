@@ -1,0 +1,14 @@
+﻿<Window x:Class="NevronZoom.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:nevron="clr-namespace:Nevron.Chart.Wpf;assembly=Nevron.Chart.Wpf"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow"
+        Height="350"
+        Width="525">
+    <Grid>
+        <nevron:NChartControl x:Name="chartContainer"
+                              Padding="0"
+                              Margin="0">
+        </nevron:NChartControl>
+    </Grid>
+</Window>
